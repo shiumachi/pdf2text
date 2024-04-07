@@ -1,17 +1,16 @@
 import argparse
 from pathlib import Path
 import fitz  # pymupdf
-from typing import List
 import re
 import unicodedata
 
 
-def extract_text_from_pdf(pdf_path: Path) -> List[str]:
+def extract_text_from_pdf(pdf_path: Path) -> str:
     with fitz.open(pdf_path) as doc:
-        pages = []
+        text = ""
         for page in doc:
-            pages.append(page.get_text())
-        return pages
+            text += page.get_text()  # type:ignore
+        return text
 
 
 def clean_text(text: str) -> str:
@@ -32,75 +31,87 @@ def clean_text(text: str) -> str:
     return cleaned_text
 
 
-def split_text_into_chunks(pages: List[str], max_size: int) -> List[str]:
-    chunks = []
-    current_chunk = ""
+def process_file(input_path: Path, output_path: Path, overwrite: bool) -> bool:
+    if output_path.exists() and not overwrite:
+        print(f"Skipping '{input_path}' as output file '{output_path}' already exists.")
+        return False
 
-    for page in pages:
-        sentences = re.split(r"(?<=[。！？])", page)
-        for sentence in sentences:
-            if sentence:
-                cleaned_sentence = clean_text(sentence)
-                if (
-                    len(
-                        current_chunk.encode("utf-8") + cleaned_sentence.encode("utf-8")
-                    )
-                    <= max_size
-                ):
-                    current_chunk += cleaned_sentence
-                else:
-                    chunks.append(current_chunk)
-                    current_chunk = cleaned_sentence
+    try:
+        text = extract_text_from_pdf(input_path)
+        cleaned_text = clean_text(text)
 
-    if current_chunk:
-        chunks.append(current_chunk)
+        with output_path.open("w", encoding="utf-8") as output_file:
+            output_file.write(cleaned_text)
 
-    return chunks
-
-
-def save_chunks_to_files(chunks: List[str], output_path: Path) -> None:
-    for i, chunk in enumerate(chunks, start=1):
-        chunk_path = output_path.with_stem(f"{output_path.stem}.{i}")
-        with chunk_path.open("w", encoding="utf-8") as chunk_file:
-            chunk_file.write(chunk)
+        if overwrite:
+            print(
+                f"Text extracted from '{input_path}', cleaned, and saved to '{output_path}' (overwritten)."
+            )
+        else:
+            print(
+                f"Text extracted from '{input_path}', cleaned, and saved to '{output_path}'."
+            )
+        return True
+    except Exception as e:
+        print(f"Error processing '{input_path}': {e}")
+        return False
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Extract text from a PDF file.")
+    parser = argparse.ArgumentParser(description="Extract text from PDF files.")
     parser.add_argument(
-        "-i", "--input", type=Path, required=True, help="Path to the input PDF file."
+        "-i",
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to the input PDF file or directory.",
     )
     parser.add_argument(
-        "-o", "--output", type=Path, help="Path to the output text file."
+        "-o", "--output", type=Path, help="Path to the output text file or directory."
     )
     parser.add_argument(
-        "-s",
-        "--max-size",
-        type=int,
-        default=400,
-        help="Maximum size of each output file in kilobytes (default: 400).",
+        "-w",
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing output files.",
     )
     args = parser.parse_args()
 
     input_path: Path = args.input
-    if not input_path.is_file():
-        print(f"Error: Input file '{input_path}' does not exist.")
-        return
+    overwrite: bool = args.overwrite
 
-    if args.output:
-        output_path: Path = args.output
+    if input_path.is_file():
+        if args.output:
+            output_path: Path = args.output
+        else:
+            output_path = input_path.with_suffix(".txt")
+        process_file(input_path, output_path, overwrite)
+    elif input_path.is_dir():
+        if args.output:
+            output_dir: Path = args.output
+            if not output_dir.is_dir():
+                print(f"Error: Output path '{output_dir}' is not a directory.")
+                return
+        else:
+            output_dir = input_path
+
+        total_files = 0
+        success_files = 0
+        error_files = 0
+
+        for pdf_file in input_path.glob("*.pdf"):
+            output_path = output_dir / pdf_file.with_suffix(".txt").name
+            total_files += 1
+            if process_file(pdf_file, output_path, overwrite):
+                success_files += 1
+            else:
+                error_files += 1
+
+        print(
+            f"Processed {total_files} files: {success_files} success, {error_files} errors."
+        )
     else:
-        output_path = input_path.with_suffix(".txt")
-
-    pages: List[str] = extract_text_from_pdf(input_path)
-    max_size: int = args.max_size * 1024  # Convert kilobytes to bytes
-
-    chunks: List[str] = split_text_into_chunks(pages, max_size)
-    save_chunks_to_files(chunks, output_path)
-
-    print(
-        f"Text extracted from '{input_path}', cleaned, and saved to multiple files with the prefix '{output_path.stem}'."
-    )
+        print(f"Error: Input path '{input_path}' is not a file or directory.")
 
 
 if __name__ == "__main__":
