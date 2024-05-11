@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "text2pdf"
+name = "pdf2text"
 version = "0.1.0"
 description = ""
 authors = ["Sho Shimauchi <sho.shimauchi@gmail.com>"]

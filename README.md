@@ -1,10 +1,10 @@
-# text2pdf
+# pdf2text
 
 Converts text files to PDF format.
 
 ## Installation
 
-To install `text2pdf`, you can use the following command:
+To install `pdf2text`, you can use the following command:
 
 ```bash
 python -m venv .venv
@@ -14,7 +14,7 @@ poetry install
 
 ## Usage
 
-usage: text2pdf.py [-h] -i INPUT [-o OUTPUT] [-s MAX_SIZE]
+usage: pdf2text.py [-h] -i INPUT [-o OUTPUT] [-s MAX_SIZE]
 
 Extract text from a PDF file.
 
