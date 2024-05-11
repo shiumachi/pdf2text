@@ -14,6 +14,7 @@ poetry install
 
 ## Usage
 
+```
 usage: pdf2text.py [-h] -i INPUT [-o OUTPUT] [-s MAX_SIZE]
 
 Extract text from a PDF file.
@@ -26,3 +27,4 @@ options:
                         Path to the output text file.
   -s MAX_SIZE, --max-size MAX_SIZE
                         Maximum size of each output file in kilobytes (default: 400).
+```
