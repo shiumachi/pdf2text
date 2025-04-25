@@ -535,7 +535,7 @@ def main() -> None:
         skipped_count = 0  # スキップされたファイル数をカウント
 
         for i, pdf_file in enumerate(pdf_files):
-            logger.info(f"--- ファイル {i+1}/{total_files}: '{pdf_file.name}' ---")
+            logger.info(f"--- ファイル {i + 1}/{total_files}: '{pdf_file.name}' ---")
             output_filename = pdf_file.with_suffix(".txt").name
             output_path = output_dir / output_filename
 
